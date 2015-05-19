@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="iso-8859-1"?>
-<PROG NAME="ZSD_INVOICE_ARCHIVELINK_CHECK" VARCL="X" SUBC="1" APPL="*" CNAM="CD4998" CDAT="20150519" UNAM="CD4998" UDAT="20150519" VERN="000046" RMAND="400" RLOAD="E" FIXPT="X" SDATE="20150519" STIME="101632" IDATE="20150519" ITIME="101632" UCCHECK="X">
+<PROG NAME="ZSD_INVOICE_ARCHIVELINK_CHECK" VARCL="X" SUBC="1" APPL="*" CNAM="CD4998" CDAT="20150519" UNAM="CD4998" UDAT="20150519" VERN="000053" RMAND="400" RLOAD="E" FIXPT="X" SDATE="20150519" STIME="122149" IDATE="20150519" ITIME="122149" UCCHECK="X">
  <textPool>
   <language SPRAS="E">
    <textElement ID="I" KEY="E05" ENTRY="Document Archived" LENGTH="17 "/>
@@ -455,6 +455,8 @@ TYPES: BEGIN OF Y_T685B,
 
 CONSTANTS: C_S      TYPE SY-MSGTY         VALUE &apos;S&apos;,
            C_RE     TYPE VBPA-PARVW       VALUE &apos;RE&apos;,
+           C_I      TYPE CHAR01           VALUE &apos;I&apos;,
+           C_EQ     TYPE CHAR02           VALUE &apos;EQ&apos;,
            C_000000 TYPE VBPA-POSNR       VALUE &apos;000000&apos;,
            C_V3     TYPE NAST-KAPPL       VALUE &apos;V3&apos;,
            C_VBRK   TYPE TOAOM-SAP_OBJECT VALUE &apos;VBRK&apos;.
@@ -769,8 +771,58 @@ FORM F_SELECT_DATA .
 
   ENDIF.
 
+* Select Nast Message
+  PERFORM F_SELECT_NAST_MESSAGE.
 
 ENDFORM.                    &quot; F_SELECT_DATA
+*&amp;---------------------------------------------------------------------*
+*&amp;      Form  F_SELECT_NAST_MESSAGE
+*&amp;---------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+FORM F_SELECT_NAST_MESSAGE.
+
+  DATA: R_OBJKY TYPE RANGE OF NAST-OBJKY,
+        E_OBJKY LIKE LINE OF  R_OBJKY.
+
+  FIELD-SYMBOLS: &lt;FS_NAST&gt; TYPE NAST,
+                 &lt;FS_VBRK&gt; TYPE Y_VBRK.
+
+  FREE: R_OBJKY,
+        T_NAST.
+
+  MOVE: C_I  TO E_OBJKY-SIGN,
+        C_EQ TO E_OBJKY-OPTION.
+
+  LOOP AT T_VBRK
+      ASSIGNING &lt;FS_VBRK&gt;.
+
+    MOVE &lt;FS_VBRK&gt;-VBELN TO E_OBJKY-LOW.
+
+    APPEND E_OBJKY TO R_OBJKY.
+
+  ENDLOOP.
+
+*&quot; Select * Justification:the program needs of all fields
+  SELECT *
+    FROM NAST
+    INTO TABLE T_NAST
+   WHERE KAPPL EQ C_V3
+     AND OBJKY IN R_OBJKY
+     AND KSCHL EQ P_KSCHL.
+
+  CHECK SY-SUBRC IS INITIAL.
+
+* Delete lines that don&apos;t have log messages
+  DELETE T_NAST WHERE CMFPNR IS INITIAL.
+
+  CHECK T_NAST[] IS NOT INITIAL.
+
+* Get the last output that generates log
+  SORT T_NAST BY OBJKY ERDAT ERUHR DESCENDING.
+
+
+ENDFORM.                    &quot; F_SELECT_NAST_MESSAGE
 *&amp;---------------------------------------------------------------------*
 *&amp;      Form  F_VALIDATE_ARCHIVELINK_CONF
 *&amp;---------------------------------------------------------------------*
@@ -1092,6 +1144,7 @@ FORM F_REFRESH .
 
   DELETE T_OUTPUT_TMP WHERE ARCHIV_ID NE SPACE.
 
+  PERFORM F_SELECT_NAST_MESSAGE.
 
   LOOP AT T_OUTPUT_TMP
       ASSIGNING &lt;FS_OUTPUT&gt;.
@@ -1215,7 +1268,7 @@ FORM F_SHOW_OUTPUT_PROTOCOL  USING US_ROW TYPE INT4.
   CLEAR: NAST,
          W_KALSM.
 
-  SORT T_NAST BY OBJKY ASCENDING.
+*  SORT T_NAST BY OBJKY ASCENDING.
 * Get right line of Output table
   READ TABLE T_OUTPUT
     ASSIGNING &lt;FS_OUTPUT&gt;
