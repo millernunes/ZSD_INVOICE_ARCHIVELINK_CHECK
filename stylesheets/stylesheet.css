@@ -22,9 +22,7 @@ time, mark, audio, video {
 	vertical-align: baseline;
 	border: 0;
 }
-form{
-	background: #e7e7e7 url(../images/body-bg.png) 0 0 repeat;
-}
+
 /* HTML5 display-role reset for older browsers */
 article, aside, details, figcaption, figure,
 footer, header, hgroup, menu, nav, section {
@@ -236,8 +234,7 @@ td {
 
 form {
   padding: 20px;
-  background: #f2f2f2;
-
+  background: #e7e7e7 url(../images/body-bg.png) 0 0 repeat;
 }
 
 
